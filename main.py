@@ -1,5 +1,7 @@
 import requests
 import threading
+from tinytag import TinyTag
+import os
 from bs4 import BeautifulSoup
 
 BASE_URL = "https://downloads.khinsider.com"
@@ -28,7 +30,11 @@ def getDownloadURL(link):
     for a in link_soup.find_all("a"):
         try:
             href = a["href"]
-            if "flac" in href or "m4a" in href:
+            if "vgmsite.com" in href and ".flac" in href or ".m4a" in href:
+                if href not in download_urls and "jpg" not in href:
+                    download_urls.append(href)
+                    print(href)
+            elif "vgmsite.com" in href and ".mp3" in href:
                 if href not in download_urls and "jpg" not in href:
                     download_urls.append(href)
                     print(href)
@@ -53,3 +59,19 @@ with requests.Session() as req:
         with open(fileName, "wb") as musicFile:
             musicFile.write(fileRequest.content)
         print("Finished download File")
+
+for file in os.listdir():
+    if file.endswith(".m4a") or file.endswith(".flac") or file.endswith(".mp3"):
+        tag = TinyTag.get(file)
+        newName = tag.title
+        if "/" in newName:
+            newName = newName.replace("/", "-")
+        if file.endswith(".m4a"):
+            tag = TinyTag.get(file)
+            os.rename(file, newName + ".m4a")
+        elif file.endswith(".flac"):
+            tag = TinyTag.get(file)
+            os.rename(file, newName + ".flac")
+        elif file.endswith(".mp3"):
+            tag = TinyTag.get(file)
+            os.rename(file, newName + ".mp3")

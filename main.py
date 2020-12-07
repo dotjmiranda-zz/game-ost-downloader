@@ -4,7 +4,7 @@ from tinytag import TinyTag
 import os
 from bs4 import BeautifulSoup
 from termcolor import colored
-import logging
+from progress.bar import FillingCirclesBar
 
 BASE_URL = "https://downloads.khinsider.com"
 SEARCH_PARTIAL = "/search?search="
@@ -96,19 +96,31 @@ for url in download_urls:
     if "https" in url:
         cleaned_urls.append(url)
 
+os.system("clear")
+
 print(colored(("Found " + str(len(cleaned_urls)) + " tracks."), "green"))
+
+def download(link):
+    fileName = link.split("/")[-1]
+    fileRequest = req.get(link, stream=True)
+    with open(os.path.join(save_path, fileName), "wb") as musicFile:
+        musicFile.write(fileRequest.content)
+    bar.next()
 
 if os.path.isdir("download"):
     with requests.Session() as req:
         save_path = "download/"
 
-        for file in cleaned_urls:
-            print(colored("Downloading file", "yellow"))
-            fileName = file.split("/")[-1]
-            fileRequest = req.get(file, stream=True)
-            with open(os.path.join(save_path, fileName), "wb") as musicFile:
-                musicFile.write(fileRequest.content)
-                print(colored(("Finished downloading file: " + musicFile.name), "green"))
+        threads = []
+        bar = FillingCirclesBar("Downloading ", max=len(cleaned_urls))
+        for link in cleaned_urls:
+            thread = threading.Thread(target=download, args=(link,))
+            threads.append(thread)
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        bar.finish()
 
     # rename song files
     for file in os.listdir("download"):
@@ -126,3 +138,5 @@ if os.path.isdir("download"):
             os.rename(filePath, newNamePath + ".mp3")
 else:
     print("Please create a folder named 'download' in the root in order to download.")
+
+print(colored("Download finished", "green"))

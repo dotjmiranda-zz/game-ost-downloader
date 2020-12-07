@@ -4,6 +4,7 @@ from tinytag import TinyTag
 import os
 from bs4 import BeautifulSoup
 from termcolor import colored
+import logging
 
 BASE_URL = "https://downloads.khinsider.com"
 SEARCH_PARTIAL = "/search?search="
@@ -35,17 +36,15 @@ def getMusicURLs(link):
 def getDownloadURL(link):
     page = requests.get(BASE_URL + link).text
     soup = BeautifulSoup(page, "html.parser")
-    betterFlag = False
 
     for a in soup.find_all("a"):
         try:
             href = a["href"]
             if "vgmsite.com" or "vgmdownloads.com" in href:
                 if  ".flac" in href or ".m4a" in href:
-                    betterFlag = True
                     if href not in download_urls and "jpg" not in href:
                         download_urls.append(href)
-                elif ".mp3" in href and betterFlag is False:
+                elif ".mp3" in href:
                     if href not in download_urls and "jpg" not in href:
                         download_urls.append(href)
         except KeyError:
@@ -80,12 +79,30 @@ for thread in threads:
 for thread in threads:
     thread.join()
 
-print(colored(("Found " + str(len(download_urls)) + " tracks."), "green"))
+# Go through list - if find m4a or flac link remove all mp3 links
+betterFlag = False
+for url in download_urls:
+    if "m4a" in url or "flac" in url:
+        betterFlag = True
+        break
+if betterFlag is True:
+    for url in download_urls:
+        if "mp3" in url:
+          download_urls.pop(download_urls.index(url))
+
+cleaned_urls = []
+
+for url in download_urls:
+    if "https" in url:
+        cleaned_urls.append(url)
+
+print(colored(("Found " + str(len(cleaned_urls)) + " tracks."), "green"))
 
 if os.path.isdir("download"):
     with requests.Session() as req:
         save_path = "download/"
-        for file in download_urls:
+
+        for file in cleaned_urls:
             print(colored("Downloading file", "yellow"))
             fileName = file.split("/")[-1]
             fileRequest = req.get(file, stream=True)
@@ -93,6 +110,7 @@ if os.path.isdir("download"):
                 musicFile.write(fileRequest.content)
                 print(colored(("Finished downloading file: " + musicFile.name), "green"))
 
+    # rename song files
     for file in os.listdir("download"):
         tag = TinyTag.get(os.path.join("download", file))
         newName = tag.title

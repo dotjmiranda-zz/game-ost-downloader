@@ -67,7 +67,7 @@ for a in results:
 album_index = input("Select an album from the list: ")
 album_link = results[int(album_index)]["href"]
 
-music_urls = getMusicURLs(album_link)
+music_urls = getMusicURLs(BASE_URL + album_link)
 download_urls = []
 threads = []
 
@@ -88,7 +88,7 @@ for url in download_urls:
 if betterFlag is True:
     for url in download_urls:
         if "mp3" in url:
-          download_urls.pop(download_urls.index(url))
+            download_urls.pop(download_urls.index(url))
 
 cleaned_urls = []
 
